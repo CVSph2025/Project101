@@ -1,0 +1,108 @@
+name: homygo
+type: laravel
+
+# Environment configuration
+environments:
+  production:
+    domain: your-domain.com # Replace with your actual domain
+    branch: main
+    
+    # Build configuration
+    build:
+      commands:
+        - composer install --no-dev --optimize-autoloader
+        - npm ci
+        - npm run build
+        - php artisan config:cache
+        - php artisan route:cache
+        - php artisan view:cache
+    
+    # Runtime configuration
+    runtime:
+      php_version: "8.2"
+      node_version: "20"
+    
+    # Environment variables
+    variables:
+      APP_ENV: production
+      APP_DEBUG: false
+      LOG_CHANNEL: stderr
+      LOG_LEVEL: error
+      SESSION_DRIVER: database
+      CACHE_STORE: database
+      QUEUE_CONNECTION: database
+      BROADCAST_CONNECTION: log
+      FILESYSTEM_DISK: local
+    
+    # Database configuration
+    database:
+      type: mysql
+      version: "8.0"
+    
+    # Queue workers
+    queues:
+      default:
+        connection: database
+        queue: default
+        processes: 1
+        memory: 128
+        timeout: 60
+        sleep: 3
+        max_tries: 3
+    
+    # Scheduler
+    scheduler: true
+    
+    # Health checks
+    health_check:
+      path: /
+      timeout: 30
+    
+    # Storage
+    storage:
+      - name: app-storage
+        mount: /app/storage/app
+        size: 1GB
+    
+  staging:
+    domain: staging-your-domain.com # Optional staging environment
+    branch: develop
+    
+    build:
+      commands:
+        - composer install --optimize-autoloader
+        - npm ci
+        - npm run build
+        - php artisan config:cache
+        - php artisan route:cache
+        - php artisan view:cache
+    
+    runtime:
+      php_version: "8.2"
+      node_version: "20"
+    
+    variables:
+      APP_ENV: staging
+      APP_DEBUG: true
+      LOG_CHANNEL: stderr
+      LOG_LEVEL: debug
+      SESSION_DRIVER: database
+      CACHE_STORE: database
+      QUEUE_CONNECTION: database
+    
+    database:
+      type: mysql
+      version: "8.0"
+    
+    scheduler: true
+
+# Services configuration
+services:
+  redis:
+    version: "7.0"
+    memory: 128MB
+  
+  # Uncomment if you need additional services
+  # elasticsearch:
+  #   version: "8.0"
+  #   memory: 256MB

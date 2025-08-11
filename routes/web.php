@@ -8,16 +8,25 @@ use App\Http\Controllers\BookingController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\AIRecommendationController;
 use App\Http\Controllers\EnterpriseMonitoringController;
+use App\Http\Controllers\HealthCheckController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Artisan;
 
 Route::get('/', function () {
     // Force deployment refresh - commit 581c500
     return view('homepage');
 })->name('welcome');
 
-// Health check endpoint for Render
-Route::get('/health', function () {
+// Health check endpoints - Enhanced version
+Route::get('/health', [HealthCheckController::class, 'simple'])->name('health-check');
+Route::get('/health/detailed', [HealthCheckController::class, 'index'])->name('health-detailed');
+Route::get('/health/database', [HealthCheckController::class, 'database'])->name('health-database');
+Route::get('/health/environment', [HealthCheckController::class, 'environment'])->name('health-environment');
+
+// Legacy health check endpoint for backwards compatibility
+Route::get('/health-legacy', function () {
     return response()->json([
         'status' => 'ok',
         'timestamp' => now()->toISOString(),
@@ -25,7 +34,7 @@ Route::get('/health', function () {
         'commit' => '581c500+',
         'homepage_route' => 'active',
     ]);
-})->name('health-check');
+})->name('health-check-legacy');
 
 // Debug routes for troubleshooting deployment
 Route::get('/debug/db', function () {
@@ -93,9 +102,9 @@ Route::get('/debug/health', function () {
 Route::get('/debug/clear-cache', function () {
     try {
         // Clear various caches
-        \Artisan::call('route:clear');
-        \Artisan::call('view:clear');
-        \Artisan::call('config:clear');
+        Artisan::call('route:clear');
+        Artisan::call('view:clear');
+        Artisan::call('config:clear');
         
         return response()->json([
             'status' => 'success',
