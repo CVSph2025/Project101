@@ -112,6 +112,13 @@ class PropertyController extends Controller
             'images.*' => 'image|mimes:jpeg,png,jpg,webp|max:5120', // 5MB max
         ]);
 
+        // Validate CDO location requirement
+        if (!Property::isValidCdoLocation($request->location)) {
+            return back()->withInput()->withErrors([
+                'location' => 'Properties must be located within Cagayan de Oro City only.'
+            ]);
+        }
+
         DB::beginTransaction();
         
         try {
@@ -222,6 +229,13 @@ class PropertyController extends Controller
             'remove_images' => 'nullable|array',
             'remove_images.*' => 'integer|exists:property_images,id',
         ]);
+
+        // Validate CDO location requirement
+        if (!Property::isValidCdoLocation($request->location)) {
+            return back()->withInput()->withErrors([
+                'location' => 'Properties must be located within Cagayan de Oro City only.'
+            ]);
+        }
 
         DB::beginTransaction();
         

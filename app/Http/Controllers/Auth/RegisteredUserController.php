@@ -19,7 +19,7 @@ class RegisteredUserController extends Controller
      */
     public function create(): View
     {
-        return view('auth.register-custom');
+        return view('auth.register');
     }
 
     /**
@@ -44,7 +44,13 @@ class RegisteredUserController extends Controller
 
         // Assign role based on user selection
         $role = $request->user_type === 'landlord' ? 'landlord' : 'renter';
-        $user->assignRole($role);
+        
+        try {
+            $user->assignRole($role);
+        } catch (\Exception $e) {
+            // If role doesn't exist, log the error but continue
+            \Log::warning("Role '{$role}' does not exist for user {$user->email}. User registered without role.");
+        }
 
         event(new Registered($user));
 

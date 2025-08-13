@@ -198,9 +198,13 @@ class Property extends Model
     /**
      * Check if property is available for given dates
      */
-    public function isAvailable($startDate, $endDate): bool
+    public function isAvailable($startDate = null, $endDate = null): bool
     {
-        return !$this->bookings()
+        if (!$startDate || !$endDate) {
+            return $this->is_active;
+        }
+        
+        return $this->is_active && !$this->bookings()
             ->where('status', 'confirmed')
             ->where(function ($query) use ($startDate, $endDate) {
                 $query->whereBetween('start_date', [$startDate, $endDate])
@@ -211,5 +215,94 @@ class Property extends Model
                     });
             })
             ->exists();
+    }
+
+    /**
+     * Validate if location is within Cagayan de Oro City
+     */
+    public static function isValidCdoLocation(string $location): bool
+    {
+        $cdoKeywords = [
+            'cagayan de oro',
+            'cdo',
+            'cagayan de oro city',
+            'misamis oriental'
+        ];
+
+        $location = strtolower($location);
+        
+        foreach ($cdoKeywords as $keyword) {
+            if (str_contains($location, $keyword)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Extract barangay from CDO location
+     */
+    public static function extractBarangay(string $location): string
+    {
+        $parts = explode(',', $location);
+        return trim($parts[0]);
+    }
+
+    /**
+     * Get formatted price attribute
+     */
+    public function getFormattedPriceAttribute(): string
+    {
+        return '₱' . number_format($this->price_per_night, 2);
+    }
+
+    /**
+     * Get CDO barangays list
+     */
+    public static function getCdoBarangays(): array
+    {
+        return [
+            'Agusan' => 'Agusan',
+            'Balulang' => 'Balulang', 
+            'Barangay 1' => 'Barangay 1 (Poblacion)',
+            'Barangay 2' => 'Barangay 2 (Poblacion)',
+            'Barangay 3' => 'Barangay 3 (Poblacion)',
+            'Barangay 4' => 'Barangay 4 (Poblacion)',
+            'Barangay 5' => 'Barangay 5 (Poblacion)',
+            'Barangay 6' => 'Barangay 6 (Poblacion)',
+            'Barangay 7' => 'Barangay 7 (Poblacion)',
+            'Barangay 8' => 'Barangay 8 (Poblacion)',
+            'Barangay 9' => 'Barangay 9 (Poblacion)',
+            'Barangay 10' => 'Barangay 10 (Poblacion)',
+            'Bugo' => 'Bugo',
+            'Bulua' => 'Bulua',
+            'Carmen' => 'Carmen',
+            'Cogon' => 'Cogon',
+            'Consolacion' => 'Consolacion',
+            'Cugman' => 'Cugman',
+            'Dansolihon' => 'Dansolihon',
+            'F.S. Catanico' => 'F.S. Catanico',
+            'Gusa' => 'Gusa',
+            'Iponan' => 'Iponan',
+            'Kauswagan' => 'Kauswagan',
+            'Lapasan' => 'Lapasan',
+            'Lumbia' => 'Lumbia',
+            'Macabalan' => 'Macabalan',
+            'Macasandig' => 'Macasandig',
+            'Mambuaya' => 'Mambuaya',
+            'Nazareth' => 'Nazareth',
+            'Pagatpat' => 'Pagatpat',
+            'Patag' => 'Patag',
+            'Pigsag-an' => 'Pigsag-an',
+            'Puerto' => 'Puerto',
+            'Puntod' => 'Puntod',
+            'San Simon' => 'San Simon',
+            'Tablon' => 'Tablon',
+            'Taglimao' => 'Taglimao',
+            'Tignapoloan' => 'Tignapoloan',
+            'Tuburan' => 'Tuburan',
+            'Tumpagon' => 'Tumpagon'
+        ];
     }
 }

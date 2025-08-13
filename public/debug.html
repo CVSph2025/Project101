@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug - Asset Loading</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Frontend Asset Debug Page</h1>
+    
+    <h2>Current Environment:</h2>
+    <ul>
+        <li>Laravel Application: <span class="success">✓ Running</span></li>
+        <li>Vite Assets: <span id="vite-status">Checking...</span></li>
+        <li>Service Worker: <span id="sw-status">Checking...</span></li>
+    </ul>
+
+    <h2>Asset Checks:</h2>
+    <div id="asset-checks">
+        <p>Testing asset availability...</p>
+    </div>
+
+    <h2>Network Requests:</h2>
+    <div id="network-logs">
+        <p>Monitoring network requests...</p>
+    </div>
+
+    <script>
+        // Check Vite assets
+        fetch('/build/manifest.json')
+            .then(response => {
+                if (response.ok) {
+                    document.getElementById('vite-status').innerHTML = '<span class="success">✓ Available</span>';
+                    return response.json();
+                } else {
+                    throw new Error('Manifest not found');
+                }
+            })
+            .then(manifest => {
+                console.log('Vite Manifest:', manifest);
+                
+                // Test actual asset files
+                const assetChecks = document.getElementById('asset-checks');
+                assetChecks.innerHTML = '<h3>Manifest Assets:</h3>';
+                
+                Object.entries(manifest).forEach(([key, value]) => {
+                    const p = document.createElement('p');
+                    p.innerHTML = `<strong>${key}:</strong> ${value.file}`;
+                    assetChecks.appendChild(p);
+                    
+                    // Test if asset loads
+                    fetch('/' + value.file)
+                        .then(r => {
+                            if (r.ok) {
+                                p.innerHTML += ' <span class="success">✓</span>';
+                            } else {
+                                p.innerHTML += ' <span class="error">✗</span>';
+                            }
+                        })
+                        .catch(() => {
+                            p.innerHTML += ' <span class="error">✗</span>';
+                        });
+                });
+            })
+            .catch(error => {
+                document.getElementById('vite-status').innerHTML = '<span class="error">✗ ' + error.message + '</span>';
+            });
+
+        // Check service worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistration()
+                .then(registration => {
+                    if (registration) {
+                        document.getElementById('sw-status').innerHTML = '<span class="info">Registered</span>';
+                        console.log('Service Worker registered:', registration);
+                    } else {
+                        document.getElementById('sw-status').innerHTML = '<span class="info">Not registered</span>';
+                    }
+                });
+        } else {
+            document.getElementById('sw-status').innerHTML = '<span class="error">Not supported</span>';
+        }
+
+        // Monitor network requests
+        const originalFetch = window.fetch;
+        const networkLogs = document.getElementById('network-logs');
+        networkLogs.innerHTML = '<h3>Network Requests:</h3>';
+
+        window.fetch = function(...args) {
+            const url = args[0];
+            const logEntry = document.createElement('p');
+            logEntry.innerHTML = `<strong>Fetch:</strong> ${url}`;
+            networkLogs.appendChild(logEntry);
+            
+            return originalFetch.apply(this, args)
+                .then(response => {
+                    if (response.ok) {
+                        logEntry.innerHTML += ' <span class="success">✓ ' + response.status + '</span>';
+                    } else {
+                        logEntry.innerHTML += ' <span class="error">✗ ' + response.status + '</span>';
+                    }
+                    return response;
+                })
+                .catch(error => {
+                    logEntry.innerHTML += ' <span class="error">✗ ' + error.message + '</span>';
+                    throw error;
+                });
+        };
+
+        // Log any console errors
+        window.addEventListener('error', (event) => {
+            console.error('Global error:', event.error);
+            const errorLog = document.createElement('p');
+            errorLog.innerHTML = `<span class="error">Error: ${event.error.message}</span>`;
+            networkLogs.appendChild(errorLog);
+        });
+
+        // Navigation test
+        setTimeout(() => {
+            const testDiv = document.createElement('div');
+            testDiv.innerHTML = `
+                <h3>Navigation Test:</h3>
+                <a href="/register" target="_blank">Test Registration Page</a> |
+                <a href="/login" target="_blank">Test Login Page</a> |
+                <a href="/" target="_blank">Test Home Page</a>
+            `;
+            document.body.appendChild(testDiv);
+        }, 2000);
+    </script>
+</body>
+</html>

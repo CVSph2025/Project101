@@ -162,6 +162,26 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     
+    // Debug route for property creation
+    Route::get('/debug-property-create', function() {
+        $user = Auth::user();
+        if (!$user) {
+            return 'Not logged in';
+        }
+        
+        $roles = $user->roles->pluck('name')->toArray();
+        $canCreate = $user->can('create', \App\Models\Property::class);
+        
+        return [
+            'user' => $user->name,
+            'email' => $user->email,
+            'roles' => $roles,
+            'can_create_property' => $canCreate,
+            'route_url' => route('properties.create'),
+            'request_path' => request()->path(),
+        ];
+    })->name('debug.property.create');
+
     // Property routes
     Route::resource('properties', PropertyController::class);
     Route::patch('/properties/{property}/toggle-status', [PropertyController::class, 'toggleStatus'])->name('properties.toggle-status');

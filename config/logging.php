@@ -131,7 +131,31 @@ return [
             'driver' => 'daily',
             'path' => storage_path('logs/security.log'),
             'level' => env('LOG_LEVEL', 'debug'),
+            'days' => env('LOG_DAILY_DAYS', 30), // Keep security logs longer
+            'replace_placeholders' => true,
+        ],
+
+        'business' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/business.log'),
+            'level' => env('LOG_LEVEL', 'info'),
+            'days' => env('LOG_DAILY_DAYS', 30),
+            'replace_placeholders' => true,
+        ],
+
+        'performance' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/performance.log'),
+            'level' => env('LOG_LEVEL', 'info'),
             'days' => env('LOG_DAILY_DAYS', 14),
+            'replace_placeholders' => true,
+        ],
+
+        'audit' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/audit.log'),
+            'level' => env('LOG_LEVEL', 'info'),
+            'days' => env('LOG_DAILY_DAYS', 90), // Keep audit logs longest
             'replace_placeholders' => true,
         ],
 
