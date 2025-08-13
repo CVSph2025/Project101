@@ -37,6 +37,11 @@
       }
     }
   </style>
+  <script>
+    setTimeout(function() {
+      window.location.href = "{{ route('login') }}";
+    }, 3000);
+  </script>
 </head>
 <body>
   <div class="svg-fullscreen">
