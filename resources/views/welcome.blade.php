@@ -40,12 +40,12 @@
   <script>
     setTimeout(function() {
       window.location.href = "{{ route('login') }}";
-    }, 3000);
+    }, 2000);
   </script>
 </head>
 <body>
   <div class="svg-fullscreen">
-    <img src="{{ asset('HomyGo.svg') }}" alt="HomyGo Logo">
+    <img src="{{ asset('HomyGo.svg') }}" alt="HomyGo Logo" onclick="window.location.href='{{ route('login') }}'" style="cursor:pointer;">
   </div>
 </body>
 </html>
