@@ -1,11 +1,11 @@
-const CACHE_NAME = 'homygo-v1.0.0';
-const STATIC_CACHE = 'homygo-static-v1.0.0';
-const DYNAMIC_CACHE = 'homygo-dynamic-v1.0.0';
+const CACHE_NAME = 'homygo-v1.1.0';
+const STATIC_CACHE = 'homygo-static-v1.1.0';
+const DYNAMIC_CACHE = 'homygo-dynamic-v1.1.0';
 
 const STATIC_ASSETS = [
     '/',
-    '/css/app.css',
-    '/js/app.js',
+    '/build/assets/app-BWobF87v.css',
+    '/build/assets/app-DtCVKgHt.js',
     '/icons/icon-192x192.png',
     '/icons/icon-512x512.png',
     '/offline.html'
@@ -42,11 +42,13 @@ self.addEventListener('activate', event => {
                         return caches.delete(cacheName);
                     }
                 })
-            );
+            ).then(() => {
+                // Force reload of all clients to ensure fresh content
+                console.log('Service Worker: Cache cleanup complete, claiming clients');
+                return self.clients.claim();
+            });
         })
     );
-    
-    self.clients.claim();
 });
 
 // Fetch event - serve cached content when offline

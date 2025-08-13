@@ -18,10 +18,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'security' => \App\Http\Middleware\SecurityMiddleware::class,
             'request.id' => \App\Http\Middleware\RequestIdMiddleware::class,
             'input.validation' => \App\Http\Middleware\EnhancedInputValidationMiddleware::class,
+            'error.monitoring' => \App\Http\Middleware\ErrorMonitoringMiddleware::class,
         ]);
         
         // Add global middleware stack in proper order
         $middleware->append(\App\Http\Middleware\RequestIdMiddleware::class);
+        $middleware->append(\App\Http\Middleware\ErrorMonitoringMiddleware::class);
         $middleware->append(\App\Http\Middleware\EnhancedInputValidationMiddleware::class);
         $middleware->append(\App\Http\Middleware\SecurityMiddleware::class);
     })

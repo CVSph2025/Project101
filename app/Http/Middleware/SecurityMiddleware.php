@@ -94,16 +94,21 @@ class SecurityMiddleware
      */
     protected function isRateLimited(Request $request, string $clientIp, $user = null): bool
     {
+        // Skip rate limiting entirely in development
+        if (app()->environment('development', 'local')) {
+            return false;
+        }
+        
         // Skip rate limiting if cache is not available
         try {
             $key = $user ? "rate_limit:user:{$user->id}" : "rate_limit:ip:{$clientIp}";
             
-            // Different limits for different types of requests
+            // Different limits for different types of requests - DEVELOPMENT SETTINGS
             $limits = [
-                'login' => ['max' => 50, 'window' => 900], // 50 attempts per 15 minutes (development)
-                'api' => ['max' => 1000, 'window' => 3600], // 1000 requests per hour (development)
-                'booking' => ['max' => 100, 'window' => 600], // 100 bookings per 10 minutes (development)
-                'default' => ['max' => 500, 'window' => 3600], // 500 requests per hour (development)
+                'login' => ['max' => 100, 'window' => 900], // 100 attempts per 15 minutes
+                'api' => ['max' => 10000, 'window' => 3600], // 10,000 requests per hour
+                'booking' => ['max' => 1000, 'window' => 600], // 1,000 bookings per 10 minutes
+                'default' => ['max' => 5000, 'window' => 3600], // 5,000 requests per hour (very generous)
             ];
 
             $requestType = $this->getRequestType($request);

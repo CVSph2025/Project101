@@ -13,6 +13,28 @@
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+        
+        <!-- Cache busting for development -->
+        <script>
+            // Clear any cached React references
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                    for(let registration of registrations) {
+                        registration.unregister();
+                    }
+                });
+            }
+            // Clear browser cache for this session
+            if ('caches' in window) {
+                caches.keys().then(names => {
+                    names.forEach(name => {
+                        if (name.includes('react') || name.includes('tsx')) {
+                            caches.delete(name);
+                        }
+                    });
+                });
+            }
+        </script>
     </head>
     <body class="font-sans text-gray-900 antialiased">
         <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100">

@@ -36,12 +36,23 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
-        Auth::guard('web')->logout();
+        try {
+            Auth::guard('web')->logout();
 
-        $request->session()->invalidate();
+            $request->session()->invalidate();
 
-        $request->session()->regenerateToken();
+            $request->session()->regenerateToken();
 
-        return redirect('/');
+            return redirect('/')->with('success', 'You have been logged out successfully.');
+        } catch (\Exception $e) {
+            // Log the error for debugging
+            \Log::error('Logout error: ' . $e->getMessage());
+            
+            // Force logout by clearing session manually
+            $request->session()->flush();
+            $request->session()->regenerate();
+            
+            return redirect('/')->with('success', 'You have been logged out.');
+        }
     }
 }

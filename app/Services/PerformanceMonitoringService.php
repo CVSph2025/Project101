@@ -531,6 +531,220 @@ class PerformanceMonitoringService
     }
 
     /**
+     * Monitor CDO-specific property metrics
+     */
+    public function getCdoPropertyMetrics(): array
+    {
+        $this->startTimer('cdo_metrics');
+        
+        try {
+            // Cache key for CDO metrics
+            $cacheKey = 'cdo_property_metrics';
+            $cachedMetrics = Cache::get($cacheKey);
+            
+            if ($cachedMetrics) {
+                $this->endTimer('cdo_metrics');
+                return $cachedMetrics;
+            }
+            
+            // Total properties in CDO
+            $totalCdoProperties = DB::table('properties')
+                ->where('is_active', true)
+                ->where(function($query) {
+                    $query->whereRaw('LOWER(location) LIKE ?', ['%cagayan de oro%'])
+                          ->orWhereRaw('LOWER(location) LIKE ?', ['%cdo%'])
+                          ->orWhereRaw('LOWER(location) LIKE ?', ['%misamis oriental%']);
+                })
+                ->count();
+            
+            // Properties by barangay
+            $propertiesByBarangay = DB::table('properties')
+                ->selectRaw('SUBSTRING_INDEX(location, ",", 1) as barangay, COUNT(*) as count')
+                ->where('is_active', true)
+                ->whereRaw('LOWER(location) LIKE ?', ['%cagayan de oro%'])
+                ->groupBy('barangay')
+                ->orderBy('count', 'desc')
+                ->limit(10)
+                ->get();
+
+            // Average pricing by property type in CDO
+            $avgPricingByType = DB::table('properties')
+                ->selectRaw('property_type, AVG(price_per_night) as avg_price, COUNT(*) as count')
+                ->where('is_active', true)
+                ->whereRaw('LOWER(location) LIKE ?', ['%cagayan de oro%'])
+                ->groupBy('property_type')
+                ->orderBy('avg_price', 'desc')
+                ->get();
+            
+            $metrics = [
+                'total_active' => $totalCdoProperties,
+                'top_barangays' => $propertiesByBarangay->toArray(),
+                'pricing_by_type' => $avgPricingByType->toArray(),
+                'location_validation_rate' => $this->getCdoLocationValidationRate(),
+                'last_updated' => now()->toISOString()
+            ];
+            
+            // Cache for 10 minutes
+            Cache::put($cacheKey, $metrics, 600);
+            
+            $this->endTimer('cdo_metrics');
+            return $metrics;
+            
+        } catch (\Exception $e) {
+            $this->endTimer('cdo_metrics');
+            Log::error('CDO metrics collection failed', ['error' => $e->getMessage()]);
+            
+            return [
+                'error' => 'Failed to collect CDO metrics',
+                'message' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Get CDO location validation rate
+     */
+    private function getCdoLocationValidationRate(): float
+    {
+        try {
+            $totalProperties = DB::table('properties')->count();
+            $cdoProperties = DB::table('properties')
+                ->where(function($query) {
+                    $query->whereRaw('LOWER(location) LIKE ?', ['%cagayan de oro%'])
+                          ->orWhereRaw('LOWER(location) LIKE ?', ['%cdo%'])
+                          ->orWhereRaw('LOWER(location) LIKE ?', ['%misamis oriental%']);
+                })
+                ->count();
+
+            return $totalProperties > 0 ? ($cdoProperties / $totalProperties) * 100 : 0;
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+
+    /**
+     * Generate comprehensive performance report including CDO metrics
+     */
+    public function generateComprehensiveReport(): array
+    {
+        $report = [
+            'timestamp' => now()->toISOString(),
+            'server_info' => [
+                'php_version' => PHP_VERSION,
+                'laravel_version' => app()->version(),
+                'memory_limit' => ini_get('memory_limit'),
+                'max_execution_time' => ini_get('max_execution_time')
+            ],
+            'performance' => [
+                'database' => $this->getDatabaseMetrics(),
+                'cache' => $this->getCacheMetrics(),
+                'system' => $this->getSystemMetrics()
+            ],
+            'cdo_metrics' => $this->getCdoPropertyMetrics(),
+            'recommendations' => $this->generatePerformanceRecommendations()
+        ];
+
+        // Calculate overall health score
+        $report['overall_health'] = $this->calculateOverallHealthScore($report);
+
+        // Log the comprehensive report
+        Log::channel('performance')->info('Comprehensive performance report generated', $report);
+
+        return $report;
+    }
+
+    /**
+     * Calculate overall health score
+     */
+    private function calculateOverallHealthScore(array $report): array
+    {
+        $scores = [];
+        
+        // Database performance score
+        if (isset($report['performance']['database']['query_time_ms'])) {
+            $queryTime = $report['performance']['database']['query_time_ms'];
+            $scores['database'] = $queryTime < 50 ? 100 : 
+                                 ($queryTime < 100 ? 80 : 
+                                 ($queryTime < 200 ? 60 : 40));
+        }
+        
+        // Cache performance score
+        if (isset($report['performance']['cache']['hit_rate'])) {
+            $hitRate = $report['performance']['cache']['hit_rate'];
+            $scores['cache'] = $hitRate > 90 ? 100 : 
+                              ($hitRate > 70 ? 80 : 
+                              ($hitRate > 50 ? 60 : 40));
+        }
+        
+        // Memory usage score
+        if (isset($report['performance']['system']['memory_usage_percentage'])) {
+            $memUsage = $report['performance']['system']['memory_usage_percentage'];
+            $scores['memory'] = $memUsage < 70 ? 100 : 
+                               ($memUsage < 85 ? 80 : 
+                               ($memUsage < 95 ? 60 : 40));
+        }
+
+        // CDO metrics score
+        if (isset($report['cdo_metrics']['total_active'])) {
+            $cdoTotal = $report['cdo_metrics']['total_active'];
+            $scores['cdo_data'] = $cdoTotal > 0 ? 100 : 50;
+        }
+
+        $averageScore = !empty($scores) ? array_sum($scores) / count($scores) : 0;
+        
+        return [
+            'score' => round($averageScore, 1),
+            'grade' => $averageScore >= 90 ? 'A+' : 
+                      ($averageScore >= 80 ? 'A' : 
+                      ($averageScore >= 70 ? 'B' : 
+                      ($averageScore >= 60 ? 'C' : 'D'))),
+            'status' => $averageScore >= 80 ? 'excellent' : 
+                       ($averageScore >= 60 ? 'good' : 
+                       ($averageScore >= 40 ? 'warning' : 'critical')),
+            'component_scores' => $scores
+        ];
+    }
+
+    /**
+     * Generate performance recommendations
+     */
+    private function generatePerformanceRecommendations(): array
+    {
+        $recommendations = [];
+        
+        $dbMetrics = $this->getDatabaseMetrics();
+        $cacheMetrics = $this->getCacheMetrics();
+        $systemMetrics = $this->getSystemMetrics();
+        $cdoMetrics = $this->getCdoPropertyMetrics();
+        
+        // Database recommendations
+        if ($dbMetrics['query_time_ms'] > 100) {
+            $recommendations[] = 'Database queries are slow - consider adding indexes or optimizing queries';
+        }
+        
+        // Cache recommendations
+        if ($cacheMetrics['hit_rate'] < 80) {
+            $recommendations[] = 'Cache hit rate is low - review caching strategy';
+        }
+        
+        // Memory recommendations
+        if ($systemMetrics['memory_usage_percentage'] > 85) {
+            $recommendations[] = 'High memory usage detected - consider optimization or scaling';
+        }
+        
+        // CDO-specific recommendations
+        if (isset($cdoMetrics['total_active']) && $cdoMetrics['total_active'] < 10) {
+            $recommendations[] = 'Low number of active CDO properties - consider marketing initiatives';
+        }
+        
+        if (empty($recommendations)) {
+            $recommendations[] = 'System performance is optimal';
+        }
+
+        return $recommendations;
+    }
+
+    /**
      * Convert memory limit string to bytes
      */
     protected function convertToBytes(string $value): int
