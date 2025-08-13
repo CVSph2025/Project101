@@ -15,8 +15,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Artisan;
 
 Route::get('/', function () {
-    // Force deployment refresh - commit 581c500
-    return view('homepage');
+    return view('welcome');
 })->name('welcome');
 
 // Health check endpoints - Enhanced version
@@ -304,7 +303,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/saved-searches/{savedSearch}/results', [App\Http\Controllers\SavedSearchController::class, 'results'])->name('saved-searches.results');
     Route::post('/saved-searches/{savedSearch}/test-alert', [App\Http\Controllers\SavedSearchController::class, 'sendTestAlert'])->name('saved-searches.test-alert');
     Route::post('/saved-searches/bulk-action', [App\Http\Controllers\SavedSearchController::class, 'bulkAction'])->name('saved-searches.bulk-action');
-    Route::post('/save-search-from-url', [App\Http\Controllers\SavedSearchController::class, 'saveFromSearch'])->name('saved-searches.save-from-url');
+    Route::post('/save-search_from_url', [App\Http\Controllers\SavedSearchController::class, 'saveFromSearch'])->name('saved-searches.save-from-url');
 });
 
 // AI Recommendation Testing Routes (Development/Testing Only)
